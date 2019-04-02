@@ -1,0 +1,226 @@
+<template>
+	<!-- 数据汇总 -->
+	<section>
+		<el-col :span="24" class="toolbar" style="padding-bottom:0px;">
+			<el-form :inline="true" style="overflow:hidden;" :model="formOne">
+				<el-form-item>
+					<div class="block">
+						<span class="registerTime">日期</span>
+						<el-date-picker 
+						v-model="formOne.choiceDate" 
+						type="daterange" 
+						range-separator=" 至 " 
+						placeholder="选择日期范围"></el-date-picker>
+					</div>
+				</el-form-item>
+				<el-form-item>
+					<span>渠道</span>
+					<el-select style="width: 200px;" v-model="formOne.channel_list" multiple>
+						<el-option 
+                        v-for="(item, index) in channlList"
+                        :key="index"
+                        :label="item.annotation" 
+                        :value="item.id">
+                        </el-option>
+					</el-select>
+				</el-form-item>
+                <el-form-item>
+					<el-button 
+					type="primary"
+					@click="getTableData">查询</el-button>
+                    <el-button 
+                    type="primary" 
+                    @click.native.prevent="handleDownloadOne">导出</el-button>
+				</el-form-item>
+			</el-form>
+		</el-col>
+		<template>
+			<el-table 
+			ref="tableHeight" 
+			:data="onePageTabData" 
+			border fit highlight-current-row 
+			v-loading="listLoading" 
+			style="width:100%;" 
+			:height="tableHeight">
+				<el-table-column prop="date" label="日期" ></el-table-column>
+				<el-table-column prop="register_count" label="新增注册" ></el-table-column>
+				<el-table-column prop="register_count_total" label="累计注册" ></el-table-column>
+				<!-- <el-table-column prop="recharge_count" label="付费用户"></el-table-column>
+				<el-table-column prop="recharge_sum" label="日充值"></el-table-column>
+				<el-table-column prop="recharge_sum_total" label="累计充值"></el-table-column> -->
+				<el-table-column prop="call_count_total" label="有效随机电话数量"></el-table-column>
+			</el-table>
+			<el-col :span="24" class="toolbar">
+				<el-pagination 
+				layout="total,prev,pager,next,jumper" 
+				@current-change="handleCurrentChange" 
+				
+				:total="totalpage" 
+				style="float:right;"></el-pagination>
+			</el-col>
+		</template>
+	</section>
+</template>
+
+<script>
+import Event from './../../public_js/event.js';
+import { allget } from '../../api/api';
+import store from '../../vuex/store';
+import axios from 'axios';
+export default {
+	data() {
+		return {
+			tableHeight: null, 
+			operate_user: '',
+			formOne: {
+				choiceDate: [new Date()-30*24*60*60*1000, new Date()], 
+                channel_list:null,
+			},
+			listLoading: false, 
+			tabData: [], 
+			totalpage: 1000, 
+			page: 1, 
+			star: '0',
+			end: '20',
+			dialogFormVisible: false,
+			formLabelWidth: '130px', 
+            channlList:null,
+		};
+	},
+	computed:{
+		onePageTabData() {
+			var _this = this;
+			return _this.tabData.slice(_this.star, _this.end);
+		},
+	},
+	methods: {
+		handleCurrentChange(val) {
+			var _this = this;
+			_this.page = val;
+            _this.getTableData();
+		},
+		// 搜索条件
+		searchCondition() {
+			var _this = this;
+			var obj = {};
+			obj.start_date = baseConfig.changeDateTime(_this.formOne.choiceDate[0], 0);
+			obj.end_date = baseConfig.changeDateTime(_this.formOne.choiceDate[1], 0);
+            obj.channel_list = _this.formOne.channel_list.join(',');
+            obj.parent_sid = store.state.user.sid;
+            obj.page = _this.page;
+			return obj; 
+		},
+		// 获取数据列表
+		getTableData() {
+			var _this = this ;
+			_this.listLoading = true;
+			var url = '/Salesman/getUserStat';
+			var params = _this.searchCondition();
+			axios.get(allget+url, { params: params })		
+                .then((res) => {
+                    _this.listLoading = false;
+                    if(res.data.code == 1) {
+                        _this.tabData = res.data.data;
+                    } else {
+                        baseConfig.warningTipMsg(_this, res.data.msg);
+                    }
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
+		},
+        //获取渠道
+        getChannlList(){
+            var _this = this ;
+			_this.listLoading = true;
+			var url = '/Salesman/getChannelOptionListBySid';
+			var params = {
+                sid: store.state.user.sid
+            };
+			axios.get(allget+url, { params: params })		
+                .then((res) => {
+                    _this.listLoading = false;
+                    if(res.data.code == 1) {
+                        _this.channlList = res.data.data;
+                    } else {
+                        baseConfig.warningTipMsg(_this, res.data.msg);
+                    }
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
+        },
+        //导出
+        handleDownloadOne() {
+			require.ensure([], () => {
+			const { export_json_to_excel } = require('../vendor/Export2Excel');
+			const tHeader = ['日期','新增注册','累计注册','付费用户','日充值','累计充值','有效随机电话数量'];
+			const filterVal = ['date','register_count','register_count_total','recharge_count','recharge_sum','recharge_sum_total','call_count_total'];
+			const data = this.formatJson(filterVal, this.tabData);
+			export_json_to_excel(tHeader, data, 'excel表');
+            })
+		},
+        formatJson(filterVal, jsonData) {
+			return jsonData.map(v => filterVal.map(j => {
+			if (j === 'timestamp') {
+				return parseTime(v[j])
+			} else {
+				return v[j]
+			}
+			}))
+		},
+	},
+	mounted() {
+		var _this = this;
+		this.$nextTick(function() {
+			_this.tableHeight = baseConfig.lineNumber(searchPageHeight);
+			_this.getTableData();
+            _this.getChannlList();
+            _this.getSalesmanOption();
+		})
+	}
+};
+</script>
+
+<style lang="css" scoped>
+/* 页面样式css内容 */
+.excelBox{
+	width: 500px; height: 270px; margin-left: -150px; background: #f1f7ff;
+	position: absolute; left: 50%; top: 15%; z-index: 1000;
+}
+p{ margin: 0; }
+.excelBox>p{
+	width:100%; height: 50px; line-height: 50px; font-weight:bold;
+	background: #e3efff; text-align:center;
+}
+.excelBox .excelInput{
+	width:100%; height: 60px;
+}
+.excelBox .select{
+	width:100%; height: 80px;
+}
+.excelBox .excelInput p,
+.excelBox .select p{
+	width:100%; height: 36px; text-indent: 20px; line-height: 36px;
+}
+.excelBox .excelInput input{
+    width:300px; display:block; margin: 0 auto;
+}
+.excelBox .select>div{
+	width:300px; display:block; margin: 0 auto;
+}
+.btns{
+    width:100%; height: 50px;
+}
+.btns button{
+    width: 80px; height: 40px; text-align:center; line-height: 40px;
+    border: none; border-radius: 5px;
+    background-color: #78B2FF; margin-top:20px; color: #fff;
+}
+.btns button:nth-of-type(1){
+    margin-left: 150px; cursor: pointer;
+}
+.btns button:nth-of-type(2){
+    margin-left: 50px; cursor: pointer;
+}
+</style>
