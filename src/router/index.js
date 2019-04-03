@@ -13,6 +13,7 @@ import empty from '../components/rootGlobal/empty.vue';//空组建进行页面�
 import AllDataCollectionFirst from '../components/gradeFirst/allDataCollection.vue'; //数据汇总
 import DetailDataCollectionFirst from '../components/gradeFirst/detailDataCollection.vue'; //详情数据
 import UserManagementFirst from '../components/gradeFirst/userManagement.vue'; //账号管理
+import ChannelManagement from '../components/gradeFirst/channelManagement.vue'; //渠道管理
 
 //一级推广员
 import AllDataCollectionTwo from '../components/gradeTwo/allDataCollection.vue'; //数据汇总
@@ -77,6 +78,7 @@ export const asyncRouterMap = [
             {path: '/gradeFirst/allDataCollection',component: AllDataCollectionFirst,name: '汇总数据',iconCls: 'el-icon-menu',hidden: false,meta: { role: ['T1'] }},
             {path: '/gradeFirst/detailDataCollection',component: DetailDataCollectionFirst,name: '详情数据',iconCls: 'el-icon-menu',hidden: false,meta: { role: ['T1'] }},
             {path: '/gradeFirst/userManagement',component: UserManagementFirst,name: '账号管理',iconCls: 'el-icon-menu',hidden: false,meta: { role: ['T1'] }},
+            {path: '/gradeFirst/channelManagement',component: ChannelManagement,name: '渠道管理',iconCls: 'el-icon-menu',hidden: false,meta: { role: ['T1'] }},
         ]
     },
     {
