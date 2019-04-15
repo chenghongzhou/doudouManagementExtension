@@ -133,7 +133,7 @@ export default {
         var _this = this;
         _this.$nextTick(function() {
             // 不要登录，直接进入
-            if(baseConfig.getCookie('userlist')) {
+            if(baseConfig.getCookie('userlist') && JSON.parse(baseConfig.getCookie('userlist')).status == 1) {
                 store.dispatch('AgainGetInfo')
                     .then((res) => {
                         // 去触发生成动态权限

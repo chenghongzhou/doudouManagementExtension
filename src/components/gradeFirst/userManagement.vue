@@ -111,16 +111,7 @@
                         v-model="addInfo.uid" 
                         auto-complete="off"></el-input>
                     </el-form-item>
-                    <el-form-item label="渠道" :label-width="formLabelWidth">
-                        <el-select v-model="addInfo.channel_list" multiple style="width:100%">
-                            <el-option 
-                            v-for="(item, index) in channlList"
-                            :key="index"
-                            :label="item.annotation" 
-                            :value="item.id">
-                            </el-option>
-                        </el-select>
-                    </el-form-item>
+                    
                     <el-form-item label="推广员级别" :label-width="formLabelWidth">
                         <el-select v-model="addInfo.level" style="width:100%" @change="getNext">
                             <el-option label="一级推广员" value="1">一级推广员</el-option>
@@ -128,12 +119,22 @@
                         </el-select>
                     </el-form-item>
                     <el-form-item label="" :label-width="formLabelWidth" v-show="isCheck">
-                        <el-select v-model="addInfo.leveler" style="width:100%" placeholder="请选择上级推广员">
+                        <el-select v-model="addInfo.leveler" style="width:100%" placeholder="请选择上级推广员" @change="getThisChannl(addInfo.leveler)">
                             <el-option 
                             v-for="(item, index) in levelers"
                             :key="index"
                             :label="item.name" 
                             :value="item.sid">
+                            </el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="渠道" :label-width="formLabelWidth">
+                        <el-select v-model="addInfo.channel_list" multiple style="width:100%">
+                            <el-option 
+                            v-for="(item, index) in channlList"
+                            :key="index"
+                            :label="item.annotation" 
+                            :value="item.id">
                             </el-option>
                         </el-select>
                     </el-form-item>
@@ -164,16 +165,6 @@
                         v-model="editerInfo.uid" 
                         auto-complete="off"></el-input>
                     </el-form-item>
-                    <el-form-item label="渠道" :label-width="formLabelWidth">
-                        <el-select v-model="editerInfo.channel_list" multiple style="width:100%">
-                            <el-option 
-                            v-for="(item, index) in channlList"
-                            :key="index"
-                            :label="item.annotation" 
-                            :value="item.id">
-                            </el-option>
-                        </el-select>
-                    </el-form-item>
                     <el-form-item label="推广员级别" :label-width="formLabelWidth">
                         <el-select v-model="editerInfo.level" style="width:100%" @change="getNextEditer">
                             <el-option label="一级推广员" value="1">一级推广员</el-option>
@@ -181,12 +172,22 @@
                         </el-select>
                     </el-form-item>
                     <el-form-item label="" :label-width="formLabelWidth">
-                        <el-select v-model="editerInfo.leveler" style="width:100%" placeholder="请选择上级推广员">
+                        <el-select v-model="editerInfo.leveler" style="width:100%" placeholder="请选择上级推广员" @change="getNestThisChannl(editerInfo.leveler)">
                             <el-option 
                             v-for="(item, index) in levelers"
                             :key="index"
                             :label="item.name" 
                             :value="item.sid">
+                            </el-option>
+                        </el-select>
+                    </el-form-item>
+                     <el-form-item label="渠道" :label-width="formLabelWidth">
+                        <el-select v-model="editerInfo.channel_list" multiple style="width:100%">
+                            <el-option 
+                            v-for="(item, index) in channlList"
+                            :key="index"
+                            :label="item.annotation" 
+                            :value="item.id">
                             </el-option>
                         </el-select>
                     </el-form-item>
@@ -329,12 +330,12 @@ export default {
                 });
 		},
         //获取渠道
-        getChannlList(){
+        getChannlList(num){
             var _this = this ;
 			_this.listLoading = true;
 			var url = '/Salesman/getChannelOptionListBySid';
 			var params = {
-                sid: 0
+                sid: num
             };
 			axios.get(allget+url, { params: params })		
                 .then((res) => {
@@ -429,12 +430,18 @@ export default {
         getNext(){
             var _this = this;
             _this.addInfo.leveler = '';
-            _this.levelers = '';
+            _this.levelers = [];
+            _this.channlList = '';
+            _this.addInfo.channel_list = [];
             var url = '/Salesman/getSalesmanOptionListByLevel';
 			var params = {
-                level: _this.addInfo.level
+                level: _this.addInfo.level == 1?0:1
             };
-			axios.get(allget+url, { params: params })		
+            if(_this.addInfo.level == 1){  //如果是一级推广员，则上一级是管理员
+                _this.isCheck = true;
+                _this.levelers = [{'sid':'0','name':'管理员'}];
+            }else{
+                axios.get(allget+url, { params: params })		
                 .then((res) => {
                     _this.listLoading = false;
                     if(res.data.code == 1) {
@@ -447,18 +454,46 @@ export default {
                 .catch((err) => {
                     console.log(err);
                 });
+            }
+			
+        },
+        //获取对应的渠道
+        getThisChannl(leveler){
+            var _this = this;
+            _this.channlList = '';
+            _this.addInfo.channel_list = [];
+            if(_this.addInfo.leveler == 0){
+                _this.getChannlList(0);
+            }else{
+                 _this.getChannlList(leveler);
+            }
+        },
+        //获取对应的渠道-编辑
+        getNestThisChannl(leveler){
+            var _this = this;
+            _this.channlList = '';
+            _this.editerInfo.channel_list = [];
+            if(_this.editerInfo.leveler == 0){
+                _this.getChannlList(0);
+            }else{
+                 _this.getChannlList(leveler);
+            }
         },
         getNextEditer(){
             var _this = this;
             _this.editerInfo.leveler = '';
-            _this.levelers = '';
+            _this.editerInfo.channel_list = [];
+            _this.levelers = [];
             var url = '/Salesman/getSalesmanOptionListByLevel';
 			var params = {
-                level: _this.editerInfo.level
+                level: _this.editerInfo.level == 1?0:1
             };
-			axios.get(allget+url, { params: params })		
+             if(_this.editerInfo.level == 1){  //如果是一级推广员，则上一级是管理员
+                _this.isCheck = true;
+                _this.levelers = [{'sid':'0','name':'管理员'}];
+            }else{
+                axios.get(allget+url, { params: params })		
                 .then((res) => {
-                    _this.listLoading = false;
                     if(res.data.code == 1) {
                         _this.levelers = res.data.data;
                     } else {
@@ -468,6 +503,7 @@ export default {
                 .catch((err) => {
                     console.log(err);
                 });
+            }    
         },
         //设置状态
         setSalesmanStatus(index, rows){
@@ -546,7 +582,6 @@ export default {
         },
         //编辑 leveler
         editerData(index, rows){
-            console.log(rows)
             var _this = this;
             _this.editerInfo.channel_list = '';
             _this.editerInfo.dialogFormVisible = true;
@@ -556,20 +591,23 @@ export default {
             _this.editerInfo.level = rows.level;
             _this.editerInfo.sid = rows.sid;
             _this.editerPrevChannel(index, rows);
-            
+            _this.getBegainChannnl();
+            _this.editerPrev();
             // _this.editerInfo.leveler = rows.parent_name;
         },
-        //编辑时上一级的下拉内容
-        editerPrev(){
-            var _this = this;
-            var url = '/Salesman/getSalesmanOptionListByLevel';
+        //获取编辑对应渠道
+        getBegainChannnl(){
+             var _this = this ;
+			_this.listLoading = true;
+			var url = '/Salesman/getChannelOptionListBySid';
 			var params = {
-                level: _this.editerInfo.level
+                sid:  _this.editerInfo.sid
             };
 			axios.get(allget+url, { params: params })		
                 .then((res) => {
+                    _this.listLoading = false;
                     if(res.data.code == 1) {
-                       _this.levelers = res.data.data;
+                        _this.channlList = res.data.data;
                     } else {
                         baseConfig.warningTipMsg(_this, res.data.msg);
                     }
@@ -577,6 +615,31 @@ export default {
                 .catch((err) => {
                     console.log(err);
                 });
+        },
+        //编辑时上一级的下拉内容
+        editerPrev(){
+            var _this = this;
+            _this.levelers = [];
+            var url = '/Salesman/getSalesmanOptionListByLevel';
+			var params = {
+                level: _this.editerInfo.level == 1?0:1
+            };
+            if(_this.editerInfo.level == 1){  //如果是一级推广员，则上一级是管理员
+                _this.levelers = [{'sid':'0','name':'管理员'}];
+                console.log(_this.levelers)
+            }else{
+                axios.get(allget+url, { params: params })		
+                .then((res) => {
+                    if(res.data.code == 1) {
+                        _this.levelers = res.data.data;
+                    } else {
+                        baseConfig.warningTipMsg(_this, res.data.msg);
+                    }
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
+            }    
         },
         //编辑时渠道
         editerPrevChannel(index, rows){
@@ -591,7 +654,6 @@ export default {
                        var arr = [];
                        _this.editerInfo.leveler = res.data.data.parent_sid;
                       _this.editerInfo.channel_list = res.data.data.channel_list;
-                      _this.editerPrev();
                     } else {
                         baseConfig.warningTipMsg(_this, res.data.msg);
                     }
@@ -649,7 +711,7 @@ export default {
 		this.$nextTick(function() {
 			_this.tableHeight = baseConfig.lineNumber(searchPageHeight);
 			_this.getTableData();
-            _this.getChannlList();
+           // _this.getChannlList();
             _this.getSalesmanOption();
 		})
 	}
